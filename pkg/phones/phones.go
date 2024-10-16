@@ -1,10 +1,7 @@
 package phones
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -17,32 +14,30 @@ type sendMessage struct {
 }
 
 type externalMessage struct {
-	originationNumber string
-	destinationNumber string
-	messageKeyword    string //nolint: unused
-	messageBody       string
-	inboundMessageId  string //nolint: revive,stylecheck
+	OriginationNumber string `json:"originationNumber" binding:"required"`
+	DestinationNumber string `json:"destinationNumber" binding:"required"`
+	MessageKeyword    string `json:"messageKeyword" binding:"required"`
+	MessageBody       string `json:"messageBody" binding:"required"`
+	InboundMessageID  string `json:"inboundMessageId" binding:"required"`
 }
 
 type message struct {
 	Message `json:"-"`
-	// logger  logr.Logger `json:"-"`
-	Sender string `json:"sender,omitempty"`
-	Text   string `json:"text,omitempty"`
-	Id     string `json:"id,omitempty"` //nolint: revive,stylecheck
+	logger  logr.Logger `json:"-"`
+	Sender  string      `json:"sender,omitempty"`
+	Text    string      `json:"text,omitempty"`
+	Id      string      `json:"id,omitempty"` //nolint: revive,stylecheck
 }
 
 type Message interface {
 	Get() *message
-	Reply(msg string) error
 }
 
 func (m *message) Get() *message {
-	return m
-}
+	logging.TraceCall(m.logger)
+	defer logging.TraceExit(m.logger)
 
-func (m *message) Reply(msg string) error { //nolint: revive
-	return nil
+	return m
 }
 
 type phone struct {
@@ -60,14 +55,25 @@ type Phone interface {
 }
 
 func (n *phone) ReceiveSMS(msg *message) {
+	logging.TraceCall(n.logger)
+	defer logging.TraceExit(n.logger)
+
 	n.Messages[msg.Id] = msg
 }
 
 func (n *phone) SendSMS(destination, msg string) error { //nolint: revive
+	logging.TraceCall(n.logger)
+	defer logging.TraceExit(n.logger)
+
+	
+
 	return nil
 }
 
 func (n *phone) GetMessages() []*message {
+	logging.TraceCall(n.logger)
+	defer logging.TraceExit(n.logger)
+
 	resp := []*message{}
 	for _, msg := range n.Messages {
 		resp = append(resp, msg)
@@ -76,6 +82,9 @@ func (n *phone) GetMessages() []*message {
 }
 
 func (n *phone) GetMessage(id string) (*message, error) {
+	logging.TraceCall(n.logger)
+	defer logging.TraceExit(n.logger)
+
 	theMsg, ok := n.Messages[id]
 	if !ok {
 		return nil, fmt.Errorf("Message: %s, not found", id) //nolint: err113
@@ -108,6 +117,7 @@ func InitPhones(log logr.Logger, router *gin.Engine) (Phones, error) {
 	phones := phones{
 		logger: log,
 		router: router,
+		phones: make(map[string]*phone),
 	}
 
 	if err := phones.InitHandlers(); err != nil {
@@ -118,6 +128,9 @@ func InitPhones(log logr.Logger, router *gin.Engine) (Phones, error) {
 }
 
 func (p *phones) InitHandlers() error {
+	logging.TraceCall(p.logger)
+	defer logging.TraceExit(p.logger)
+
 	p.router.POST("/sms", p.ReceiveSMS)
 	p.router.GET("/phones", p.GetPhones)
 	p.router.GET("/phones/:number/messages", p.GetPhoneMessages)
@@ -170,7 +183,7 @@ func (p *phones) ReplyToPhoneMessage(c *gin.Context) {
 		return
 	}
 
-	if err := msg.Reply(msgData.messageBody); err != nil {
+	if err := thePhone.SendSMS(msg.Sender, msgData.messageBody); err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 	}
 
@@ -181,42 +194,33 @@ func (p *phones) ReceiveSMS(c *gin.Context) {
 	logging.TraceCall(p.logger)
 	defer logging.TraceExit(p.logger)
 
-	jsonData, err := io.ReadAll(c.Request.Body)
-	if err != nil {
-		p.logger.Error(err, "failed to process incoming message", jsonData)
-		c.JSON(500, gin.H{"error": err.Error()})
-		return
-	}
-
-	var prettyJSON bytes.Buffer
-	if err = json.Indent(&prettyJSON, jsonData, " ", " "); err != nil {
-		p.logger.Error(err, "failed to format json response")
-		return
-	}
-	
-	if logging.TraceLevel > 3 {
-		fmt.Printf("%smessage...\n%s\n", logging.CallerText(logging.MyCaller), prettyJSON.String())
-	}
-
 	var emsg externalMessage
 	if err := c.BindJSON(&emsg); err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
+		c.JSON(400, gin.H{"error": err.Error()})
 		return
+	}
+
+	if logging.TraceLevel == 0 {
+		fmt.Printf("%smessage...\n%+v\n", logging.CallerText(logging.MyCaller), emsg)
 	}
 
 	msg := &message{
-		Sender: emsg.originationNumber,
-		Text:   emsg.messageBody,
-		Id:     emsg.inboundMessageId,
+		logger: p.logger,
+		Sender: emsg.OriginationNumber,
+		Text:   emsg.MessageBody,
+		Id:     emsg.InboundMessageID,
 	}
 
-	phone := p.GetPhone(emsg.destinationNumber)
+	phone := p.GetPhone(emsg.DestinationNumber)
 	phone.ReceiveSMS(msg)
 
 	c.JSON(int(200), nil)
 }
 
 func (p *phones) GetPhone(number string) Phone {
+	logging.TraceCall(p.logger)
+	defer logging.TraceExit(p.logger)
+
 	thePhone, ok := p.phones[number]
 	if !ok {
 		thePhone = &phone{
@@ -224,6 +228,7 @@ func (p *phones) GetPhone(number string) Phone {
 			Number:   number,
 			Messages: map[string]*message{},
 		}
+		p.phones[number] = thePhone
 	}
 	return thePhone
 }
