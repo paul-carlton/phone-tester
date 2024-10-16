@@ -16,27 +16,22 @@ limitations under the License.
 package main
 
 import (
-	"bytes"
-	"encoding/json"
 	"flag"
 	"fmt"
-	"io"
 	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/paul-carlton/goutils/pkg/logging"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
-
-	"github.com/nabancard/phone-tester/pkg/logging"
-	"github.com/nabancard/phone-tester/pkg/version"
-
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+
+	"github.com/nabancard/phone-tester/pkg/phones"
+	"github.com/nabancard/phone-tester/pkg/version"
 )
 
 func main() {
-	// using standard library "flag" package
 	flag.Bool("version", false, "display version")
-
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.Parse()
 	if err := viper.BindPFlags(pflag.CommandLine); err != nil {
@@ -44,7 +39,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	getVersion := viper.GetBool("version") // retrieve value from viper
+	getVersion := viper.GetBool("version")
 
 	if getVersion {
 		fmt.Printf("version: %s\n", version.Version)
@@ -62,27 +57,21 @@ func main() {
 
 	logger.Info("stating", "port", port)
 
-	router := gin.Default()
+	router := gin.New()
+	router.Use(gin.Logger(), gin.Recovery())
+	if err := router.SetTrustedProxies(nil); err != nil {
+		logger.Error(err, "failed to initialize phones")
+		os.Exit(1)
+	}
 
-	router.POST("/sms-reply", func(c *gin.Context) {
-		jsonData, err := io.ReadAll(c.Request.Body)
-		if err != nil {
-			logger.Error(err, "failed to process incoming message", jsonData)
-			c.JSON(500, gin.H{"error": err.Error()})
-			return
-		}
-		var prettyJSON bytes.Buffer
-		if err = json.Indent(&prettyJSON, jsonData, " ", " "); err != nil {
-			logger.Error(err, "failed to format json response")
-			return
-		}
-		fmt.Printf("message...\n%s\n", prettyJSON.String())
-		logger.Info("received sms reply", "message", prettyJSON.String())
-		c.JSON(int(200), nil)
-	})
+	if _, err := phones.InitPhones(logger, router); err != nil {
+		logger.Error(err, "failed to initialize phones")
+		os.Exit(1)
+	}
 
 	err := router.Run(fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		logger.Error(err, "failed to process incoming message")
+		os.Exit(1)
 	}
 }

@@ -1,5 +1,5 @@
-go 1.22
+go 1.22.8
 
 use ./pkg/main
-use ./pkg/logging
 use ./pkg/version
+use ./pkg/phones

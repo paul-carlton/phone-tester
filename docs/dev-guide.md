@@ -9,18 +9,14 @@ clone repo:
     git clone git@github.com:nabancard/phone-tester.git
     cd phone-tester
 
-Then build:
-
-    make
-
 ## Development
 
 The Makefile in the project's top level directory will compile, build and test all components.
 
-    make build
+    make docker
 
 ## Deployment
 
 The Makefile can build a docker image too.
 
-    make push
+    make docker push
