@@ -7,8 +7,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-logr/logr"
-	"github.com/nabancard/phone-tester/pkg/sms"
 	"github.com/paul-carlton/goutils/pkg/logging"
+
+	"github.com/nabancard/phone-tester/pkg/sms"
 )
 
 var (
@@ -77,7 +78,7 @@ func (n *phone) ReceiveSMS(msg *message) {
 	n.Messages[msg.Id] = msg
 }
 
-func (n *phone) SendSMS(destination, msg string) error { //nolint: revive
+func (n *phone) SendSMS(destination, msg string) error {
 	logging.TraceCall(n.logger)
 	defer logging.TraceExit(n.logger)
 

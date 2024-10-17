@@ -6,7 +6,7 @@ require (
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-logr/logr v1.4.2
 	github.com/nabancard/phone-tester v0.0.0-20241016223644-6ede6ded39bf
-	github.com/paul-carlton/goutils/pkg/logging v0.1.6
+	github.com/paul-carlton/goutils/pkg/logging v0.1.8
 )
 
 require (

@@ -7,7 +7,7 @@ toolchain go1.22.8
 require (
 	github.com/gin-gonic/gin v1.10.0
 	github.com/nabancard/phone-tester/pkg/version v0.0.0-20241015224659-54d7d8a4a2b4
-	github.com/paul-carlton/goutils/pkg/logging v0.1.6
+	github.com/paul-carlton/goutils/pkg/logging v0.1.8
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.7.0
 	go.uber.org/zap v1.27.0 // indirect
