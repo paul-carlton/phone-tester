@@ -1,11 +1,11 @@
 package sms
 
 import (
+	"context"
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/pinpointsmsvoicev2"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/pinpointsmsvoicev2"
 	"github.com/go-logr/logr"
 	"github.com/paul-carlton/goutils/pkg/logging"
 )
@@ -13,24 +13,27 @@ import (
 type smsService struct {
 	SMSservice
 	logger logr.Logger
-	svc    *pinpointsmsvoicev2.PinpointSMSVoiceV2
+	svc    *pinpointsmsvoicev2.Client
 }
 
 type SMSservice interface {
 	Init() error
 
 	SendSMS(destination, msg, sender string) (*string, error)
-	SendMMS(destination, msg, sender string, urls []*string) (*string, error)
+	SendMMS(destination, msg, sender string, urls []string) (*string, error)
 }
 
 func NewSMSservice(log logr.Logger, region string) (SMSservice, error) {
 	logging.TraceCall(log)
 	defer logging.TraceExit(log)
 
-	awsSession := session.Must(session.NewSession())
+	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
+	if err != nil {
+		return nil, fmt.Errorf("%s - failed to load AWS SDK config, %w", logging.CallerStr(logging.Me), err)
+	}
 
 	// Create a PinpointSMSVoice client with additional configuration
-	svc := pinpointsmsvoicev2.New(awsSession, aws.NewConfig().WithRegion(region))
+	svc := pinpointsmsvoicev2.NewFromConfig(cfg)
 
 	logging.TraceCall(log)
 	defer logging.TraceExit(log)
@@ -43,7 +46,7 @@ func NewSMSservice(log logr.Logger, region string) (SMSservice, error) {
 	return &smsService, nil
 }
 
-func (s *smsService) SendMMS(destination, msg, sender string, urls []*string) (*string, error) {
+func (s *smsService) SendMMS(destination, msg, sender string, urls []string) (*string, error) {
 	logging.TraceCall(s.logger)
 	defer logging.TraceExit(s.logger)
 
@@ -57,7 +60,7 @@ func (s *smsService) SendMMS(destination, msg, sender string, urls []*string) (*
 		MediaUrls:              urls,
 		OriginationIdentity:    &sender,
 	}
-	output, err := s.svc.SendMediaMessage(input)
+	output, err := s.svc.SendMediaMessage(context.TODO(), input)
 	if err != nil {
 		return nil, fmt.Errorf("%s - failed to send message to: %s, %w", logging.CallerStr(logging.Me), destination, err)
 	}
@@ -77,7 +80,7 @@ func (s *smsService) SendSMS(destination, msg, sender string) (*string, error) {
 		MessageBody:            &msg,
 		OriginationIdentity:    &sender,
 	}
-	output, err := s.svc.SendTextMessage(input)
+	output, err := s.svc.SendTextMessage(context.TODO(), input)
 	if err != nil {
 		return nil, fmt.Errorf("%s - failed to send message to: %s, %w", logging.CallerStr(logging.Me), destination, err)
 	}

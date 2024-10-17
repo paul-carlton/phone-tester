@@ -16,10 +16,10 @@ limitations under the License.
 package main
 
 import (
+	"cmp"
 	"flag"
 	"fmt"
 	"os"
-	"cmp"
 
 	"github.com/gin-gonic/gin"
 	"github.com/paul-carlton/goutils/pkg/logging"
@@ -28,8 +28,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	"github.com/nabancard/phone-tester/pkg/phones"
-	"github.com/nabancard/phone-tester/pkg/version"
 	"github.com/nabancard/phone-tester/pkg/sms"
+	"github.com/nabancard/phone-tester/pkg/version"
 )
 
 func main() {
@@ -68,17 +68,18 @@ func main() {
 		os.Exit(1)
 	}
 
-	if sms, err := sms.NewSMSservice(logger, region); err != nil {
+	smsService, err := sms.NewSMSservice(logger, region)
+	if err != nil {
 		logger.Error(err, "failed to initialize sms service")
 		os.Exit(1)
 	}
 
-	if _, err := phones.InitPhones(logger, router, sms); err != nil {
+	if _, err := phones.InitPhones(logger, router, smsService); err != nil {
 		logger.Error(err, "failed to initialize phones")
 		os.Exit(1)
 	}
 
-	err := router.Run(fmt.Sprintf("%s:%d", addr, port))
+	err = router.Run(fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		logger.Error(err, "failed to process incoming message")
 		os.Exit(1)
