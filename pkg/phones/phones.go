@@ -1,13 +1,28 @@
 package phones
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-logr/logr"
+	"github.com/nabancard/phone-tester/pkg/sms"
 	"github.com/paul-carlton/goutils/pkg/logging"
 )
+
+var (
+	ErrorMessageNotFound = errors.New("message not found")
+	ErrorFailedToSendSMS = errors.New("failed to send SMS message")
+)
+
+func messageNotFoundError(msg string) error {
+	return fmt.Errorf("%w: %s", ErrorMessageNotFound, msg)
+}
+
+func failedToSendSMSmessage(msg string) error {
+	return fmt.Errorf("%w: %s", ErrorFailedToSendSMS, msg)
+}
 
 type sendMessage struct {
 	messageBody string
@@ -41,10 +56,11 @@ func (m *message) Get() *message {
 }
 
 type phone struct {
-	Phone    `json:"-"`
-	logger   logr.Logger         `json:"-"`
-	Number   string              `json:"Number,omitempty"`
-	Messages map[string]*message `json:"Messages,omitempty"`
+	Phone      `json:"-"`
+	logger     logr.Logger         `json:"-"`
+	smsService sms.SMSservice      `json:"-"`
+	Number     string              `json:"Number,omitempty"`
+	Messages   map[string]*message `json:"Messages,omitempty"`
 }
 
 type Phone interface {
@@ -65,7 +81,10 @@ func (n *phone) SendSMS(destination, msg string) error { //nolint: revive
 	logging.TraceCall(n.logger)
 	defer logging.TraceExit(n.logger)
 
-	
+	_, err := n.smsService.SendSMS(destination, msg, n.Number)
+	if err != nil {
+		return failedToSendSMSmessage(err.Error())
+	}
 
 	return nil
 }
@@ -87,7 +106,7 @@ func (n *phone) GetMessage(id string) (*message, error) {
 
 	theMsg, ok := n.Messages[id]
 	if !ok {
-		return nil, fmt.Errorf("Message: %s, not found", id) //nolint: err113
+		return nil, messageNotFoundError(fmt.Sprintf("Message: %s, not found", id))
 	}
 	return theMsg, nil
 }
@@ -96,6 +115,7 @@ type phones struct {
 	Phones
 	logger logr.Logger
 	router *gin.Engine
+	sms    sms.SMSservice
 	phones map[string]*phone
 }
 
@@ -110,13 +130,14 @@ type Phones interface {
 	GetPhone(number string) Phone
 }
 
-func InitPhones(log logr.Logger, router *gin.Engine) (Phones, error) {
+func InitPhones(log logr.Logger, router *gin.Engine, sms sms.SMSservice) (Phones, error) {
 	logging.TraceCall(log)
 	defer logging.TraceExit(log)
 
 	phones := phones{
 		logger: log,
 		router: router,
+		sms:    sms,
 		phones: make(map[string]*phone),
 	}
 
@@ -224,9 +245,10 @@ func (p *phones) GetPhone(number string) Phone {
 	thePhone, ok := p.phones[number]
 	if !ok {
 		thePhone = &phone{
-			logger:   p.logger,
-			Number:   number,
-			Messages: map[string]*message{},
+			logger:     p.logger,
+			smsService: p.sms,
+			Number:     number,
+			Messages:   map[string]*message{},
 		}
 		p.phones[number] = thePhone
 	}

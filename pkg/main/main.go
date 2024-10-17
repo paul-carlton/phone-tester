@@ -19,6 +19,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"cmp"
 
 	"github.com/gin-gonic/gin"
 	"github.com/paul-carlton/goutils/pkg/logging"
@@ -28,6 +29,7 @@ import (
 
 	"github.com/nabancard/phone-tester/pkg/phones"
 	"github.com/nabancard/phone-tester/pkg/version"
+	"github.com/nabancard/phone-tester/pkg/sms"
 )
 
 func main() {
@@ -50,7 +52,9 @@ func main() {
 	viper.AutomaticEnv() // read value ENV variable
 	viper.SetDefault("listen_address", "0.0.0.0")
 	viper.SetDefault("listen_port", 8080)
+	viper.SetDefault("region", cmp.Or(os.Getenv("AWS_REGION"), "us-west-2"))
 	addr := viper.GetString("listen_address")
+	region := viper.GetString("region")
 	port := viper.GetInt("listen_port")
 
 	logger := logging.NewLogger("phone-tester", &zap.Options{})
@@ -64,7 +68,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	if _, err := phones.InitPhones(logger, router); err != nil {
+	if sms, err := sms.NewSMSservice(logger, region); err != nil {
+		logger.Error(err, "failed to initialize sms service")
+		os.Exit(1)
+	}
+
+	if _, err := phones.InitPhones(logger, router, sms); err != nil {
 		logger.Error(err, "failed to initialize phones")
 		os.Exit(1)
 	}
