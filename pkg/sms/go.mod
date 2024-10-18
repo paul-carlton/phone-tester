@@ -1,4 +1,4 @@
-module github.com/nabancard/phone-tester/pkg/sms
+module github.com/paul-carlton/phone-tester/pkg/sms
 
 go 1.22.8
 

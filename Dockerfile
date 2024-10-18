@@ -7,8 +7,8 @@ RUN apt-get update && apt-get install -y git
 # See here for how we can clone git private repo: https://medium.com/@tonistiigi/build-secrets-and-ssh-forwarding-in-docker-18-09-ae8161d066
 # Download public key for github.com
 RUN mkdir -p -m 0600 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
-RUN git config --global url."ssh://git@github.com/nabancard/".insteadOf "https://github.com/nabancard/" && \
-    go env -w GOPRIVATE=github.com/nabancard,$(go env GOPRIVATE)
+RUN git config --global url."ssh://git@github.com/paul-carlton/".insteadOf "https://github.com/paul-carlton/" && \
+    go env -w GOPRIVATE=github.com/paul-carlton,$(go env GOPRIVATE)
 
 COPY . /opt/messaging
 

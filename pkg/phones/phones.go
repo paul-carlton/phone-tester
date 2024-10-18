@@ -9,7 +9,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/paul-carlton/goutils/pkg/logging"
 
-	"github.com/nabancard/phone-tester/pkg/sms"
+	"github.com/paul-carlton/phone-tester/pkg/sms"
 )
 
 var (
@@ -26,7 +26,7 @@ func failedToSendSMSmessage(msg string) error {
 }
 
 type sendMessage struct {
-	messageBody string
+	MessageBody string `json:"messageBody" binding:"required"`
 }
 
 type externalMessage struct {
@@ -34,6 +34,7 @@ type externalMessage struct {
 	DestinationNumber string `json:"destinationNumber" binding:"required"`
 	MessageKeyword    string `json:"messageKeyword" binding:"required"`
 	MessageBody       string `json:"messageBody" binding:"required"`
+	SentMessageId     string `json:"previousPublishedMessageId,omitempty" binding:"-"` //nolint:revive,stylecheck
 	InboundMessageID  string `json:"inboundMessageId" binding:"required"`
 }
 
@@ -164,6 +165,10 @@ func (p *phones) GetPhones(c *gin.Context) {
 	logging.TraceCall(p.logger)
 	defer logging.TraceExit(p.logger)
 
+	if logging.TraceLevel == 0 {
+		fmt.Printf("%sphones...\n%+v\n", logging.CallerText(logging.MyCaller), p.phones)
+	}
+
 	response := []string{}
 	for _, phone := range p.phones {
 		response = append(response, phone.Number)
@@ -175,10 +180,24 @@ func (p *phones) GetPhoneMessages(c *gin.Context) {
 	logging.TraceCall(p.logger)
 	defer logging.TraceExit(p.logger)
 
+	if logging.TraceLevel == 0 {
+		fmt.Printf("%sphones...\n%+v\n", logging.CallerText(logging.MyCaller), p.phones)
+	}
+
 	number := c.Param("number")
+
+	if logging.TraceLevel == 0 {
+		fmt.Printf("%snumber:%+v\n", logging.CallerText(logging.MyCaller), number)
+	}
+
 	thePhone, ok := p.phones[number]
 	if !ok {
 		c.JSON(int(404), fmt.Sprintf("Phone: %s, not found", number))
+		return
+	}
+
+	if logging.TraceLevel == 0 {
+		fmt.Printf("%sphone...\n%+v\n", logging.CallerText(logging.MyCaller), thePhone)
 	}
 
 	c.IndentedJSON(http.StatusOK, thePhone.GetMessages())
@@ -193,6 +212,7 @@ func (p *phones) ReplyToPhoneMessage(c *gin.Context) {
 	thePhone, ok := p.phones[number]
 	if !ok {
 		c.JSON(int(404), fmt.Sprintf("Phone: %s, not found", number))
+		return
 	}
 	msg, err := thePhone.GetMessage(messageID)
 	if err != nil {
@@ -201,11 +221,15 @@ func (p *phones) ReplyToPhoneMessage(c *gin.Context) {
 
 	var msgData sendMessage
 	if err := c.BindJSON(&msgData); err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
+		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
 
-	if err := thePhone.SendSMS(msg.Sender, msgData.messageBody); err != nil {
+	if logging.TraceLevel == 0 {
+		fmt.Printf("%smsg: %+v\n", logging.CallerText(logging.MyCaller), msgData)
+	}
+
+	if err := thePhone.SendSMS(msg.Sender, msgData.MessageBody); err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 	}
 

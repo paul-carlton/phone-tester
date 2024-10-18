@@ -4,3 +4,4 @@ use ./pkg/main
 use ./pkg/version
 use ./pkg/phones
 use ./pkg/sms
+use ./pkg/tester

@@ -105,7 +105,7 @@ clean-${PROJECT}-build:
 ${PROJECT}-build: ${GO_BIN_ARTIFACT}
 ${GO_BIN_ARTIFACT}: go.sum ${MAKE_SOURCES} ${PROJECT_SOURCES}
 	echo "${YELLOW}Building executable: $@${NC}" && \
-	VERSION_PKG="github.com/nabancard/phone-tester/pkg/version" && \
+	VERSION_PKG="github.com/paul-carlton/phone-tester/pkg/version" && \
 	CGO_ENABLED=0 go build -ldflags="-s -w -X $${VERSION_PKG}.Version=${VERSION}" \
 		-o $@ pkg/main/main.go
 

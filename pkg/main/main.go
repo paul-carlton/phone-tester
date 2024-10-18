@@ -27,9 +27,10 @@ import (
 	"github.com/spf13/viper"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	"github.com/nabancard/phone-tester/pkg/phones"
-	"github.com/nabancard/phone-tester/pkg/sms"
-	"github.com/nabancard/phone-tester/pkg/version"
+	"github.com/paul-carlton/phone-tester/pkg/phones"
+	"github.com/paul-carlton/phone-tester/pkg/sms"
+	"github.com/paul-carlton/phone-tester/pkg/tester"
+	"github.com/paul-carlton/phone-tester/pkg/version"
 )
 
 func main() {
@@ -53,13 +54,12 @@ func main() {
 	viper.SetDefault("listen_address", "0.0.0.0")
 	viper.SetDefault("listen_port", 8080)
 	viper.SetDefault("region", cmp.Or(os.Getenv("AWS_REGION"), "us-west-2"))
+
 	addr := viper.GetString("listen_address")
 	region := viper.GetString("region")
 	port := viper.GetInt("listen_port")
 
 	logger := logging.NewLogger("phone-tester", &zap.Options{})
-
-	logger.Info("stating", "port", port)
 
 	router := gin.New()
 	router.Use(gin.Logger(), gin.Recovery())
@@ -79,6 +79,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	if _, err := tester.InitTester(logger, router); err != nil {
+		logger.Error(err, "failed to initialize tester")
+		os.Exit(1)
+	}
+
+	logger.Info("stating listener", "port", port)
 	err = router.Run(fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		logger.Error(err, "failed to process incoming message")

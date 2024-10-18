@@ -5,8 +5,8 @@
 
 clone repo:
 
-    cd $(env gopath)/src/github.com/nabancard
-    git clone git@github.com:nabancard/phone-tester.git
+    cd $(env gopath)/src/github.com/paul-carlton
+    git clone git@github.com:paul-carlton/phone-tester.git
     cd phone-tester
 
 ## Development

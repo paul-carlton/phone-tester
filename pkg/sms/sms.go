@@ -71,6 +71,10 @@ func (s *smsService) SendSMS(destination, msg, sender string) (*string, error) {
 	logging.TraceCall(s.logger)
 	defer logging.TraceExit(s.logger)
 
+	if logging.TraceLevel == 0 {
+		fmt.Printf("%sinputs, destination: %+v, msg: %+v, sender: %+v\n", logging.CallerText(logging.MyCaller), destination, msg, sender)
+	}
+
 	input := &pinpointsmsvoicev2.SendTextMessageInput{
 		//ConfigurationSetName: nil // *string `min:"1" type:"string"`
 		// You can specify custom data in this field. If you do, that data is logged
@@ -80,9 +84,18 @@ func (s *smsService) SendSMS(destination, msg, sender string) (*string, error) {
 		MessageBody:            &msg,
 		OriginationIdentity:    &sender,
 	}
+
+	if logging.TraceLevel == 0 {
+		fmt.Printf("%sinput...\n%+v\nmessage: %s", logging.CallerText(logging.MyCaller), input, *input.MessageBody)
+	}
+
 	output, err := s.svc.SendTextMessage(context.TODO(), input)
 	if err != nil {
 		return nil, fmt.Errorf("%s - failed to send message to: %s, %w", logging.CallerStr(logging.Me), destination, err)
+	}
+
+	if logging.TraceLevel == 0 {
+		fmt.Printf("%soutput...\n%+v\nID: %s", logging.CallerText(logging.MyCaller), output, *output.MessageId)
 	}
 	return output.MessageId, nil
 }
