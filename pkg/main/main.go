@@ -49,7 +49,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	viper.SetEnvPrefix("sms")
+	viper.SetEnvPrefix("tester")
 	viper.AutomaticEnv() // read value ENV variable
 	viper.SetDefault("listen_address", "0.0.0.0")
 	viper.SetDefault("listen_port", 8080)
