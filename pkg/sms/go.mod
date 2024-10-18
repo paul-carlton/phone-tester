@@ -4,7 +4,7 @@ go 1.22.8
 
 require (
 	github.com/aws/aws-sdk-go-v2/config v1.28.0
-	github.com/aws/aws-sdk-go-v2/service/pinpointsmsvoicev2 v1.15.2
+	github.com/aws/aws-sdk-go-v2/service/pinpointsmsvoicev2 v1.16.0
 	github.com/go-logr/logr v1.4.2
 	github.com/paul-carlton/goutils/pkg/logging v0.1.8
 )
