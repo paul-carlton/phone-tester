@@ -2,7 +2,6 @@ package tester
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/url"
 
@@ -11,14 +10,6 @@ import (
 	"github.com/paul-carlton/goutils/pkg/httpclient"
 	"github.com/paul-carlton/goutils/pkg/logging"
 )
-
-var (
-	ErrorMessageNotFound = errors.New("message not found")
-)
-
-func messageNotFoundError(msg string) error {
-	return fmt.Errorf("%w: %s", ErrorMessageNotFound, msg)
-}
 
 type testRequest struct {
 	Scheme   string `json:"scheme" binding:"required"`
@@ -39,7 +30,7 @@ type Tester interface {
 	SendReq(c *gin.Context)
 }
 
-func InitTester(log logr.Logger, router *gin.Engine, scheme, serviceEnpoint string) (Tester, error) {
+func InitTester(log logr.Logger, router *gin.Engine) (Tester, error) {
 	logging.TraceCall(log)
 	defer logging.TraceExit(log)
 
@@ -64,7 +55,6 @@ func (t *tester) InitHandlers() error {
 }
 
 func (t *tester) SendReq(c *gin.Context) {
-
 	var msgData testRequest
 	if err := c.BindJSON(&msgData); err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
@@ -78,9 +68,10 @@ func (t *tester) SendReq(c *gin.Context) {
 	// hdr["content-length"]=len(message)
 	reqResp, err := httpclient.NewReqResp(context.TODO(),
 		&url.URL{Scheme: msgData.Scheme, Host: msgData.Endpoint, Path: msgData.Path},
-		&httpclient.Post, msgData.Payload, hdr, nil, nil, nil)
+		&httpclient.Post, msgData.Payload, hdr, nil, &t.logger, nil, nil)
 	if err != nil {
-		return nil, err
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
 	}
 
 	if err = reqResp.HTTPreq(); err != nil {
