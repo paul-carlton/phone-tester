@@ -3,10 +3,11 @@ package tester
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/url"
+	"os"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-logr/logr"
 	"github.com/paul-carlton/goutils/pkg/httpclient"
 	"github.com/paul-carlton/goutils/pkg/logging"
 )
@@ -15,13 +16,23 @@ type testRequest struct {
 	Scheme   string `json:"scheme" binding:"required"`
 	Endpoint string `json:"endpoint" binding:"required"`
 	Path     string `json:"path" binding:"required"`
-	Payload  string `json:"payload" binding:"required"`
+	DataFile string `json:"datafile" binding:"required"`
 }
+
+// type sms struct {
+// 	OriginationNumber          string `json:"originationNumber"`
+// 	DestinationNumber          string `json:"destinationNumber"`
+// 	MessageKeyword             string `json:"messageKeyword"`
+// 	MessageBody                string `json:"messageBody"`
+// 	PreviousPublishedMessageID string `json:"previousPublishedMessageId"`
+// 	InboundMessageID           string `json:"inboundMessageId"`
+// }
 
 type tester struct {
 	Tester
-	logger logr.Logger
-	router *gin.Engine
+	logger  *slog.Logger
+	router  *gin.Engine
+	reqResp httpclient.ReqResp
 }
 
 type Tester interface {
@@ -30,13 +41,19 @@ type Tester interface {
 	SendReq(c *gin.Context)
 }
 
-func InitTester(log logr.Logger, router *gin.Engine) (Tester, error) {
+func InitTester(log *slog.Logger, router *gin.Engine) (Tester, error) {
 	logging.TraceCall(log)
 	defer logging.TraceExit(log)
 
+	reqResp, err := httpclient.NewReqResp(context.TODO(), log, nil, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+
 	tester := tester{
-		logger: log,
-		router: router,
+		logger:  log,
+		router:  router,
+		reqResp: reqResp,
 	}
 
 	if err := tester.InitHandlers(); err != nil {
@@ -61,22 +78,40 @@ func (t *tester) SendReq(c *gin.Context) {
 		return
 	}
 
-	fmt.Printf("Processing message: %+v\n", msgData)
-
-	hdr := make(httpclient.Header)
-	hdr["Content-Type"] = "application/json"
-	// hdr["content-length"]=len(message)
-	reqResp, err := httpclient.NewReqResp(context.TODO(),
-		&url.URL{Scheme: msgData.Scheme, Host: msgData.Endpoint, Path: msgData.Path},
-		&httpclient.Post, msgData.Payload, hdr, nil, &t.logger, nil, nil)
+	data, err := os.ReadFile(fmt.Sprintf("testdata/%s.json", msgData.DataFile))
 	if err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
 
-	if err = reqResp.HTTPreq(); err != nil {
+	t.logger.Log(context.TODO(), logging.LevelTrace, "message to send", "message data", string(data))
+
+	// sms1 := sms{
+	// 	OriginationNumber: "1",
+	// 	DestinationNumber: "2",
+	// 	MessageKeyword:    "3",
+	// 	MessageBody:       "STOP",
+	// 	InboundMessageID:  "444",
+	// }
+
+	// data, err := json.Marshal(&sms1)
+	// if err != nil {
+	// 	c.JSON(400, gin.H{"error": err.Error()})
+	// 	return
+	// }
+	// fmt.Printf("message...\n%s\n", data)
+
+	if err = t.reqResp.HTTPreq(&httpclient.Post, &url.URL{Scheme: msgData.Scheme, Host: msgData.Endpoint, Path: msgData.Path}, string(data), nil); err != nil {
 		c.JSON(int(500), gin.H{"error": err.Error()})
+		return
 	}
 
-	c.IndentedJSON(reqResp.ResponseCode(), *reqResp.RespBody())
+	reply := *t.reqResp.RespBody()
+
+	t.logger.Log(context.TODO(), logging.LevelTrace, "reply", "response code", t.reqResp.RespCode(), "response body", reply)
+	if len(reply) > 0 {
+		c.IndentedJSON(t.reqResp.RespCode(), reply)
+		return
+	}
+	c.Status(t.reqResp.RespCode())
 }

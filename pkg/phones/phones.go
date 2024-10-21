@@ -3,10 +3,10 @@ package phones
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-logr/logr"
 	"github.com/paul-carlton/goutils/pkg/logging"
 
 	"github.com/paul-carlton/phone-tester/pkg/sms"
@@ -40,10 +40,10 @@ type externalMessage struct {
 
 type message struct {
 	Message `json:"-"`
-	logger  logr.Logger `json:"-"`
-	Sender  string      `json:"sender,omitempty"`
-	Text    string      `json:"text,omitempty"`
-	Id      string      `json:"id,omitempty"` //nolint: revive,stylecheck
+	logger  *slog.Logger `json:"-"`
+	Sender  string       `json:"sender,omitempty"`
+	Text    string       `json:"text,omitempty"`
+	Id      string       `json:"id,omitempty"` //nolint: revive,stylecheck
 }
 
 type Message interface {
@@ -59,7 +59,7 @@ func (m *message) Get() *message {
 
 type phone struct {
 	Phone      `json:"-"`
-	logger     logr.Logger         `json:"-"`
+	logger     *slog.Logger        `json:"-"`
 	smsService sms.SMSservice      `json:"-"`
 	Number     string              `json:"Number,omitempty"`
 	Messages   map[string]*message `json:"Messages,omitempty"`
@@ -115,7 +115,7 @@ func (n *phone) GetMessage(id string) (*message, error) {
 
 type phones struct {
 	Phones
-	logger logr.Logger
+	logger *slog.Logger
 	router *gin.Engine
 	sms    sms.SMSservice
 	phones map[string]*phone
@@ -132,7 +132,7 @@ type Phones interface {
 	GetPhone(number string) Phone
 }
 
-func InitPhones(log logr.Logger, router *gin.Engine, sms sms.SMSservice) (Phones, error) {
+func InitPhones(log *slog.Logger, router *gin.Engine, sms sms.SMSservice) (Phones, error) {
 	logging.TraceCall(log)
 	defer logging.TraceExit(log)
 
@@ -165,7 +165,7 @@ func (p *phones) GetPhones(c *gin.Context) {
 	logging.TraceCall(p.logger)
 	defer logging.TraceExit(p.logger)
 
-	if logging.TraceLevel == 0 {
+	if logging.LevelTrace == 0 {
 		fmt.Printf("%sphones...\n%+v\n", logging.CallerText(logging.MyCaller), p.phones)
 	}
 
@@ -180,13 +180,13 @@ func (p *phones) GetPhoneMessages(c *gin.Context) {
 	logging.TraceCall(p.logger)
 	defer logging.TraceExit(p.logger)
 
-	if logging.TraceLevel == 0 {
+	if logging.LevelTrace == 0 {
 		fmt.Printf("%sphones...\n%+v\n", logging.CallerText(logging.MyCaller), p.phones)
 	}
 
 	number := c.Param("number")
 
-	if logging.TraceLevel == 0 {
+	if logging.LevelTrace == 0 {
 		fmt.Printf("%snumber:%+v\n", logging.CallerText(logging.MyCaller), number)
 	}
 
@@ -196,7 +196,7 @@ func (p *phones) GetPhoneMessages(c *gin.Context) {
 		return
 	}
 
-	if logging.TraceLevel == 0 {
+	if logging.LevelTrace == 0 {
 		fmt.Printf("%sphone...\n%+v\n", logging.CallerText(logging.MyCaller), thePhone)
 	}
 
@@ -225,7 +225,7 @@ func (p *phones) ReplyToPhoneMessage(c *gin.Context) {
 		return
 	}
 
-	if logging.TraceLevel == 0 {
+	if logging.LevelTrace == 0 {
 		fmt.Printf("%smsg: %+v\n", logging.CallerText(logging.MyCaller), msgData)
 	}
 
@@ -246,7 +246,7 @@ func (p *phones) ReceiveSMS(c *gin.Context) {
 		return
 	}
 
-	if logging.TraceLevel == 0 {
+	if logging.LevelTrace == 0 {
 		fmt.Printf("%smessage...\n%+v\n", logging.CallerText(logging.MyCaller), emsg)
 	}
 
@@ -260,7 +260,7 @@ func (p *phones) ReceiveSMS(c *gin.Context) {
 	phone := p.GetPhone(emsg.DestinationNumber)
 	phone.ReceiveSMS(msg)
 
-	c.JSON(int(200), nil)
+	c.Status(200)
 }
 
 func (p *phones) GetPhone(number string) Phone {

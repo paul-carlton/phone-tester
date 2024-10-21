@@ -5,8 +5,8 @@ go 1.22.8
 require (
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-logr/logr v1.4.2
-	github.com/paul-carlton/goutils/pkg/httpclient v0.1.8
-	github.com/paul-carlton/goutils/pkg/logging v0.1.8
+	github.com/paul-carlton/goutils/pkg/httpclient v0.2.5
+	github.com/paul-carlton/goutils/pkg/logging v0.2.11
 )
 
 require (

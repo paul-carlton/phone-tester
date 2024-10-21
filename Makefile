@@ -95,7 +95,6 @@ clean-${PROJECT}-check:
 
 ${PROJECT}-check: ${GO_CHECK_PACKAGES}
 ${GO_CHECK_PACKAGES}: go.sum
-	echo "GO_CHECK_PACKAGES: ${GO_CHECK_PACKAGES}"
 	$(MAKE) -C $@ --makefile=${CURDIR}/makefile.mk
 
 
@@ -104,6 +103,7 @@ clean-${PROJECT}-build:
 
 ${PROJECT}-build: ${GO_BIN_ARTIFACT}
 ${GO_BIN_ARTIFACT}: go.sum ${MAKE_SOURCES} ${PROJECT_SOURCES}
+	echo "GO_CHECK_PACKAGES: ${MAKE_SOURCES} ${PROJECT_SOURCES}"
 	echo "${YELLOW}Building executable: $@${NC}" && \
 	VERSION_PKG="github.com/paul-carlton/phone-tester/pkg/version" && \
 	CGO_ENABLED=0 go build -ldflags="-s -w -X $${VERSION_PKG}.Version=${VERSION}" \

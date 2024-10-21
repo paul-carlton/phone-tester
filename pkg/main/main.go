@@ -25,7 +25,6 @@ import (
 	"github.com/paul-carlton/goutils/pkg/logging"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	"github.com/paul-carlton/phone-tester/pkg/phones"
 	"github.com/paul-carlton/phone-tester/pkg/sms"
@@ -59,35 +58,35 @@ func main() {
 	region := viper.GetString("region")
 	port := viper.GetInt("listen_port")
 
-	logger := logging.NewLogger("phone-tester", &zap.Options{})
+	logger := logging.NewLogger()
 
 	router := gin.New()
 	router.Use(gin.Logger(), gin.Recovery())
 	if err := router.SetTrustedProxies(nil); err != nil {
-		logger.Error(err, "failed to initialize phones")
+		logger.Error("failed to initialize phones", "error", err)
 		os.Exit(1)
 	}
 
 	smsService, err := sms.NewSMSservice(logger, region)
 	if err != nil {
-		logger.Error(err, "failed to initialize sms service")
+		logger.Error("failed to initialize sms service", "error", err)
 		os.Exit(1)
 	}
 
 	if _, err := phones.InitPhones(logger, router, smsService); err != nil {
-		logger.Error(err, "failed to initialize phones")
+		logger.Error("failed to initialize phones")
 		os.Exit(1)
 	}
 
 	if _, err := tester.InitTester(logger, router); err != nil {
-		logger.Error(err, "failed to initialize tester")
+		logger.Error("failed to initialize tester", "error", err)
 		os.Exit(1)
 	}
 
-	logger.Info("stating listener", "port", port)
+	logger.Info("stating listener", "address", addr, "port", port)
 	err = router.Run(fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
-		logger.Error(err, "failed to process incoming message")
+		logger.Error("failed to process incoming message", "error", err)
 		os.Exit(1)
 	}
 }
