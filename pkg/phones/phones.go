@@ -51,8 +51,8 @@ type Message interface {
 }
 
 func (m *message) Get() *message {
-	logging.TraceCall(m.logger)
-	defer logging.TraceExit(m.logger)
+	logging.TraceCall()
+	defer logging.TraceExit()
 
 	return m
 }
@@ -73,15 +73,15 @@ type Phone interface {
 }
 
 func (n *phone) ReceiveSMS(msg *message) {
-	logging.TraceCall(n.logger)
-	defer logging.TraceExit(n.logger)
+	logging.TraceCall()
+	defer logging.TraceExit()
 
 	n.Messages[msg.Id] = msg
 }
 
 func (n *phone) SendSMS(destination, msg string) error {
-	logging.TraceCall(n.logger)
-	defer logging.TraceExit(n.logger)
+	logging.TraceCall()
+	defer logging.TraceExit()
 
 	_, err := n.smsService.SendSMS(destination, msg, n.Number)
 	if err != nil {
@@ -92,8 +92,8 @@ func (n *phone) SendSMS(destination, msg string) error {
 }
 
 func (n *phone) GetMessages() []*message {
-	logging.TraceCall(n.logger)
-	defer logging.TraceExit(n.logger)
+	logging.TraceCall()
+	defer logging.TraceExit()
 
 	resp := []*message{}
 	for _, msg := range n.Messages {
@@ -103,8 +103,8 @@ func (n *phone) GetMessages() []*message {
 }
 
 func (n *phone) GetMessage(id string) (*message, error) {
-	logging.TraceCall(n.logger)
-	defer logging.TraceExit(n.logger)
+	logging.TraceCall()
+	defer logging.TraceExit()
 
 	theMsg, ok := n.Messages[id]
 	if !ok {
@@ -133,8 +133,8 @@ type Phones interface {
 }
 
 func InitPhones(log *slog.Logger, router *gin.Engine, sms sms.SMSservice) (Phones, error) {
-	logging.TraceCall(log)
-	defer logging.TraceExit(log)
+	logging.TraceCall()
+	defer logging.TraceExit()
 
 	phones := phones{
 		logger: log,
@@ -151,8 +151,8 @@ func InitPhones(log *slog.Logger, router *gin.Engine, sms sms.SMSservice) (Phone
 }
 
 func (p *phones) InitHandlers() error {
-	logging.TraceCall(p.logger)
-	defer logging.TraceExit(p.logger)
+	logging.TraceCall()
+	defer logging.TraceExit()
 
 	p.router.POST("/sms", p.ReceiveSMS)
 	p.router.GET("/phones", p.GetPhones)
@@ -162,10 +162,10 @@ func (p *phones) InitHandlers() error {
 }
 
 func (p *phones) GetPhones(c *gin.Context) {
-	logging.TraceCall(p.logger)
-	defer logging.TraceExit(p.logger)
+	logging.TraceCall()
+	defer logging.TraceExit()
 
-	if logging.LevelTrace == 0 {
+	if logging.LogLevel <= slog.LevelDebug {
 		fmt.Printf("%sphones...\n%+v\n", logging.CallerText(logging.MyCaller), p.phones)
 	}
 
@@ -177,16 +177,16 @@ func (p *phones) GetPhones(c *gin.Context) {
 }
 
 func (p *phones) GetPhoneMessages(c *gin.Context) {
-	logging.TraceCall(p.logger)
-	defer logging.TraceExit(p.logger)
+	logging.TraceCall()
+	defer logging.TraceExit()
 
-	if logging.LevelTrace == 0 {
+	if logging.LogLevel <= slog.LevelDebug {
 		fmt.Printf("%sphones...\n%+v\n", logging.CallerText(logging.MyCaller), p.phones)
 	}
 
 	number := c.Param("number")
 
-	if logging.LevelTrace == 0 {
+	if logging.LogLevel <= slog.LevelDebug {
 		fmt.Printf("%snumber:%+v\n", logging.CallerText(logging.MyCaller), number)
 	}
 
@@ -196,7 +196,7 @@ func (p *phones) GetPhoneMessages(c *gin.Context) {
 		return
 	}
 
-	if logging.LevelTrace == 0 {
+	if logging.LogLevel <= slog.LevelDebug {
 		fmt.Printf("%sphone...\n%+v\n", logging.CallerText(logging.MyCaller), thePhone)
 	}
 
@@ -204,8 +204,8 @@ func (p *phones) GetPhoneMessages(c *gin.Context) {
 }
 
 func (p *phones) ReplyToPhoneMessage(c *gin.Context) {
-	logging.TraceCall(p.logger)
-	defer logging.TraceExit(p.logger)
+	logging.TraceCall()
+	defer logging.TraceExit()
 
 	number := c.Param("number")
 	messageID := c.Param("id")
@@ -225,7 +225,7 @@ func (p *phones) ReplyToPhoneMessage(c *gin.Context) {
 		return
 	}
 
-	if logging.LevelTrace == 0 {
+	if logging.LogLevel <= slog.LevelDebug {
 		fmt.Printf("%smsg: %+v\n", logging.CallerText(logging.MyCaller), msgData)
 	}
 
@@ -237,8 +237,8 @@ func (p *phones) ReplyToPhoneMessage(c *gin.Context) {
 }
 
 func (p *phones) ReceiveSMS(c *gin.Context) {
-	logging.TraceCall(p.logger)
-	defer logging.TraceExit(p.logger)
+	logging.TraceCall()
+	defer logging.TraceExit()
 
 	var emsg externalMessage
 	if err := c.BindJSON(&emsg); err != nil {
@@ -246,7 +246,7 @@ func (p *phones) ReceiveSMS(c *gin.Context) {
 		return
 	}
 
-	if logging.LevelTrace == 0 {
+	if logging.LogLevel <= slog.LevelDebug {
 		fmt.Printf("%smessage...\n%+v\n", logging.CallerText(logging.MyCaller), emsg)
 	}
 
@@ -264,8 +264,8 @@ func (p *phones) ReceiveSMS(c *gin.Context) {
 }
 
 func (p *phones) GetPhone(number string) Phone {
-	logging.TraceCall(p.logger)
-	defer logging.TraceExit(p.logger)
+	logging.TraceCall()
+	defer logging.TraceExit()
 
 	thePhone, ok := p.phones[number]
 	if !ok {

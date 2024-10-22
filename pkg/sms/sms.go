@@ -24,19 +24,19 @@ type SMSservice interface {
 }
 
 func NewSMSservice(log *slog.Logger, region string) (SMSservice, error) {
-	logging.TraceCall(log)
-	defer logging.TraceExit(log)
+	logging.TraceCall()
+	defer logging.TraceExit()
 
 	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
 	if err != nil {
-		return nil, fmt.Errorf("%s - failed to load AWS SDK config, %w", logging.CallerStr(logging.Me), err)
+		return nil, fmt.Errorf("%s - failed to load AWS SDK config, %w", logging.CallerText(logging.Me), err)
 	}
 
 	// Create a PinpointSMSVoice client with additional configuration
 	svc := pinpointsmsvoicev2.NewFromConfig(cfg)
 
-	logging.TraceCall(log)
-	defer logging.TraceExit(log)
+	logging.TraceCall()
+	defer logging.TraceExit()
 
 	smsService := smsService{
 		logger: log,
@@ -47,8 +47,8 @@ func NewSMSservice(log *slog.Logger, region string) (SMSservice, error) {
 }
 
 func (s *smsService) SendMMS(destination, msg, sender string, urls []string) (*string, error) {
-	logging.TraceCall(s.logger)
-	defer logging.TraceExit(s.logger)
+	logging.TraceCall()
+	defer logging.TraceExit()
 
 	input := &pinpointsmsvoicev2.SendMediaMessageInput{
 		//ConfigurationSetName: nil // *string `min:"1" type:"string"`
@@ -62,14 +62,14 @@ func (s *smsService) SendMMS(destination, msg, sender string, urls []string) (*s
 	}
 	output, err := s.svc.SendMediaMessage(context.TODO(), input)
 	if err != nil {
-		return nil, fmt.Errorf("%s - failed to send message to: %s, %w", logging.CallerStr(logging.Me), destination, err)
+		return nil, fmt.Errorf("%s - failed to send message to: %s, %w", logging.CallerText(logging.Me), destination, err)
 	}
 	return output.MessageId, nil
 }
 
 func (s *smsService) SendSMS(destination, msg, sender string) (*string, error) {
-	logging.TraceCall(s.logger)
-	defer logging.TraceExit(s.logger)
+	logging.TraceCall()
+	defer logging.TraceExit()
 
 	s.logger.Log(context.TODO(), logging.LevelTrace, "message", "destination", destination)
 
@@ -87,7 +87,7 @@ func (s *smsService) SendSMS(destination, msg, sender string) (*string, error) {
 
 	output, err := s.svc.SendTextMessage(context.TODO(), input)
 	if err != nil {
-		return nil, fmt.Errorf("%s - failed to send message to: %s, %w", logging.CallerStr(logging.Me), destination, err)
+		return nil, fmt.Errorf("%s - failed to send message to: %s, %w", logging.CallerText(logging.Me), destination, err)
 	}
 
 	s.logger.Log(context.TODO(), logging.LevelTrace, "output", "messageID", *output.MessageId)

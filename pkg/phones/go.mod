@@ -4,7 +4,7 @@ go 1.22.8
 
 require (
 	github.com/gin-gonic/gin v1.10.0
-	github.com/paul-carlton/goutils/pkg/logging v0.2.2
+	github.com/paul-carlton/goutils/pkg/logging v0.2.23
 	github.com/paul-carlton/phone-tester/pkg/sms v0.0.0-20241018191649-7871fe4bfca8
 )
 

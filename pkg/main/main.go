@@ -59,6 +59,7 @@ func main() {
 	port := viper.GetInt("listen_port")
 
 	logger := logging.NewLogger()
+	logger.Info("phone-tester", "version", version.Version)
 
 	router := gin.New()
 	router.Use(gin.Logger(), gin.Recovery())

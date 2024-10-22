@@ -3,6 +3,10 @@ module github.com/paul-carlton/phone-tester/pkg/main
 go 1.22.8
 
 require (
+	github.com/paul-carlton/goutils/pkg/logging v0.2.23
+)
+
+require (
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect

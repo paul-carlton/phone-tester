@@ -5,7 +5,8 @@ include project-name.mk
 .ONESHELL:
 
 MAKE_SOURCES:=makefile.mk project-name.mk Makefile
-PROJECT_SOURCES:=$(shell find ./pkg -regex '.*.\.\(go\|json\)$$')
+PROJECT_SOURCES:=$(shell find ./pkg -name '*.go')
+OTHER_SOURCES:=$(shell find ./pkg -name 'go.mod')
 BUILD_DIR:=build/
 GOMOD_VENDOR_DIR:=vendor/
 export VERSION?=latest
@@ -102,8 +103,7 @@ clean-${PROJECT}-build:
 	rm -f ${GO_BIN_ARTIFACT}
 
 ${PROJECT}-build: ${GO_BIN_ARTIFACT}
-${GO_BIN_ARTIFACT}: go.sum ${MAKE_SOURCES} ${PROJECT_SOURCES}
-	echo "GO_CHECK_PACKAGES: ${MAKE_SOURCES} ${PROJECT_SOURCES}"
+${GO_BIN_ARTIFACT}: go.sum ${MAKE_SOURCES} ${PROJECT_SOURCES} ${OTHER_SOURCES}
 	echo "${YELLOW}Building executable: $@${NC}" && \
 	VERSION_PKG="github.com/paul-carlton/phone-tester/pkg/version" && \
 	CGO_ENABLED=0 go build -ldflags="-s -w -X $${VERSION_PKG}.Version=${VERSION}" \
